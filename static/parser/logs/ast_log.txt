@@ -1,0 +1,12 @@
+[NODE] Type: StatList
+ ├── [NODE] Type: VarDecl
+ │   ├── [NODE] Type: PrimitiveType
+ │   │   └── [TYPE] 0
+ │   ├── [ID] a
+ │   └── [INT] 5
+ └── [NODE] Type: FuncCall
+     ├── [NODE] Type: Access
+     │   └── [ID] print
+     └── [NODE] Type: Arguments
+         └── [NODE] Type: Access
+             └── [ID] a
