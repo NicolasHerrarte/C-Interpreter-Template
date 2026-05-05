@@ -8,10 +8,10 @@
 output/*
 tables/*
 
-lexer/tables/*
-lexer/logs/*
-parser/logs/*
-parser/tables/*
+static/lexer/tables/*
+static/lexer/logs/*
+static/parser/logs/*
+static/parser/tables/*
 
 # Ignore executable files
 *.exe
