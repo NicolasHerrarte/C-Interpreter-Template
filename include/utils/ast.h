@@ -54,7 +54,7 @@ typedef struct ASTNode{
         struct InternalNode* node;
         struct Box* box;
         char* label;
-        void (*external_func)(void*, ...);
+        void* (*external_func)(void*, ...);
     } storage;
     struct ASTNode* sibling;
     enum ChildTag tag;

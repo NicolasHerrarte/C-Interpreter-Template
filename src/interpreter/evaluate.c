@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdarg.h>
 #include "interpreter/evaluate.h"
 
 #define INT_MACRO_TYPE (Type){.kind = KIND_PRIMITIVE, .primitive_tag = VAR_TYPE_INT}
@@ -10,6 +11,28 @@
 #define STRING_MACRO_TYPE (Type){.kind = KIND_PRIMITIVE, .primitive_tag = VAR_TYPE_STRING}
 #define VOID_MACRO_TYPE (Type){.kind = KIND_PRIMITIVE, .primitive_tag = VAR_TYPE_VOID}
 #define GENERIC_MACRO_TYPE (Type){.kind = KIND_PRIMITIVE, .primitive_tag = VAR_TYPE_GENERIC}
+#define ANY_MACRO_TYPE (Type){.kind = KIND_ANY}
+
+#define var_fetch(name) \
+    Variable name = { \
+        .storage = *getAttributeIdentifier(manager, #name, "value"), \
+        .vtype = *((Type*) (getAttributeIdentifier(manager, #name, "type")->value_ptr)) \
+    };
+
+#define var_is_prim(name) ((name).vtype.kind == KIND_PRIMITIVE)
+#define var_is_ptr(name) ((name).vtype.kind == KIND_POINTER)
+#define var_is_arr(name) ((name).vtype.kind == KIND_ARRAY)
+
+#define prim_type(name) ((name).vtype.primitive_tag)
+#define arr_type(name) ((name).vtype.array.elem_type)
+
+#define arr_size(name) ((name).vtype.array.sizes)
+#define arr_ndims(name) ((name).vtype.array.ndims)
+
+#define prim_int(name) ((name).storage.value_int)
+#define prim_float(name) ((name).storage.value_float)
+#define prim_bool(name) ((name).storage.value_bool)
+#define prim_str(name) ((name).storage.value_string)
 
 #define EPSILON_FLOAT_COMP 0.0001f
 
@@ -35,6 +58,7 @@ void print_vvalue(VValue* v) {
 }
 
 bool type_equals(Type a, Type b) {
+    if (a.kind == KIND_ANY || b.kind == KIND_ANY) return true;
     if (a.kind != b.kind) return false;
 
     switch (a.kind) {
@@ -210,21 +234,34 @@ Variable unpack_pointer(Variable variable){
 
     VValue val;
     Type ptr_type = *variable.vtype.pointer.pointee_type;
-    
     VValue* ptr_storage = (VValue*) variable.storage.value_ptr;
-    switch (ptr_type.primitive_tag) {
-        case VAR_TYPE_INT:    val = (VValue){ .vv_tag = VV_INT,    .value_int    = ptr_storage->value_int    }; break;
-        case VAR_TYPE_FLOAT:  val = (VValue){ .vv_tag = VV_FLOAT,  .value_float  = ptr_storage->value_float  }; break;
-        case VAR_TYPE_BOOL:   val = (VValue){ .vv_tag = VV_BOOL,   .value_bool   = ptr_storage->value_bool   }; break;
-        case VAR_TYPE_STRING: val = (VValue){ .vv_tag = VV_STRING, .value_string = ptr_storage->value_string }; break;
-        default: assert(false);
+
+    if(ptr_type.kind == KIND_PRIMITIVE){
+        switch (ptr_type.primitive_tag) {
+            case VAR_TYPE_INT:    val = (VValue){ .vv_tag = VV_INT,    .value_int    = ptr_storage->value_int    }; break;
+            case VAR_TYPE_FLOAT:  val = (VValue){ .vv_tag = VV_FLOAT,  .value_float  = ptr_storage->value_float  }; break;
+            case VAR_TYPE_BOOL:   val = (VValue){ .vv_tag = VV_BOOL,   .value_bool   = ptr_storage->value_bool   }; break;
+            case VAR_TYPE_STRING: val = (VValue){ .vv_tag = VV_STRING, .value_string = ptr_storage->value_string }; break;
+            default: assert(false);
+        }
+    }
+    else if(ptr_type.kind == KIND_ARRAY){
+        //assert(ptr_storage->vv_tag == VV_PTR);
+        val.vv_tag = VV_PTR;
+        val.value_ptr = ptr_storage;
+    }
+    else{
+        assert(false);
     }
 
     return (Variable) {.vtype = ptr_type, .storage = val};
 }
 
-EvalPass refactor_access_to_var(SymbolsManager* manager, EvalPass packed_expr){
+EvalPass refactor_access_to_var(SymbolsManager* manager, EvalPass packed_expr, bool unpack_ptr){
     if(packed_expr.tag == VARIABLE_TYPE){
+        if(unpack_ptr && packed_expr.as_variable.vtype.kind == KIND_POINTER && packed_expr.as_variable.vtype.pointer.unpack == true){
+            packed_expr.as_variable = unpack_pointer(packed_expr.as_variable);
+        }
         return packed_expr;
     }
     else if(packed_expr.tag == ACCESS_TYPE){
@@ -238,7 +275,7 @@ EvalPass refactor_access_to_var(SymbolsManager* manager, EvalPass packed_expr){
 
         Variable new_var = (Variable) {.vtype = access_type, .storage = value_slot};
 
-        if(new_var.vtype.kind == KIND_POINTER && new_var.vtype.pointer.unpack == true){
+        if(unpack_ptr && new_var.vtype.kind == KIND_POINTER && new_var.vtype.pointer.unpack == true){
             new_var = unpack_pointer(new_var);
         }
 
@@ -428,18 +465,28 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     Type* type_storage = (Type*) arena_get(current_arena, sizeof(Type));
                     *type_storage = var_type.as_vart;
 
-                    setAttributeIdentifier(manager, id_char, "type", (VValue){ .vv_tag = VV_PTR, .value_ptr = type_storage});
                     if(get_children_count(*node) == 3){
                         ASTNode* expr_node = identifier_node->sibling;
                         EvalPass expr_p = evaluate(manager, expr_node, current_arena);
 
-                        EvalPass expr_original = refactor_access_to_var(manager, expr_p);
-                        type_modify(type_storage, expr_original.as_variable.vtype);
-                        assert(type_equals(*type_storage, expr_original.as_variable.vtype));
+                        EvalPass expr_original = refactor_access_to_var(manager, expr_p, false);
+                        VValue pass_value;
 
-                        VValue value_deep_copy = var_deep_copy(expr_original.as_variable.storage, expr_original.as_variable.vtype, current_arena);
-                        
-                        setAttributeIdentifier(manager, id_char, "value", value_deep_copy);
+                        if(expr_original.as_variable.vtype.kind == KIND_POINTER && expr_original.as_variable.vtype.pointer.unpack == true){
+                            Variable unpacked_var = unpack_pointer(expr_original.as_variable);
+                            pass_value = unpacked_var.storage;
+
+                            type_modify(type_storage, unpacked_var.vtype);
+                            assert(type_equals(*type_storage, unpacked_var.vtype));
+                        }
+                        else{
+                            pass_value = var_deep_copy(expr_original.as_variable.storage, expr_original.as_variable.vtype, current_arena);
+                            type_modify(type_storage, expr_original.as_variable.vtype);
+                            assert(type_equals(*type_storage, expr_original.as_variable.vtype));
+                        }
+
+                        setAttributeIdentifier(manager, id_char, "type", (VValue){ .vv_tag = VV_PTR, .value_ptr = type_storage});
+                        setAttributeIdentifier(manager, id_char, "value", pass_value);
                     }
                     break;
                 }
@@ -452,7 +499,9 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                     EvalPass access = evaluate(manager, access_node, current_arena);
                     EvalPass expr_p = evaluate(manager, expr_node, current_arena);
-                    EvalPass expr_original = refactor_access_to_var(manager, expr_p);
+
+                    // TEMPORALY TRUE
+                    EvalPass expr_original = refactor_access_to_var(manager, expr_p, true);
 
                     assert(access.tag == ACCESS_TYPE);
                     
@@ -536,6 +585,18 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                         VValue* storage = (VValue*) arena_get(current_arena, store_size*sizeof(VValue));
                         action.as_variable.vtype = type_spec;
+                        action.as_variable.storage.vv_tag = VV_PTR;
+                        action.as_variable.storage.value_ptr = storage;
+                        // ---
+                        Type* ptr_pointee_storage = (Type*) arena_get(current_arena, sizeof(Type));
+                        *ptr_pointee_storage = type_spec;
+
+                        Type pointer_type;
+                        pointer_type.kind = KIND_POINTER;
+                        pointer_type.pointer.pointee_type = ptr_pointee_storage;
+                        pointer_type.pointer.unpack = true;
+
+                        action.as_variable.vtype = pointer_type;
                         action.as_variable.storage.vv_tag = VV_PTR;
                         action.as_variable.storage.value_ptr = storage;
                     }
@@ -632,7 +693,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     ASTNode* body_node = cond_node->sibling;
 
                     EvalPass cond_p = evaluate(manager, cond_node, current_arena);
-                    EvalPass cond = refactor_access_to_var(manager, cond_p);
+                    EvalPass cond = refactor_access_to_var(manager, cond_p, true);
                     //assert(cond.tag == VARIABLE_TYPE);
                     assert(cond.as_variable.vtype.primitive_tag == VAR_TYPE_BOOL);
 
@@ -662,7 +723,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     initializeScope(manager, DYNADICT_DEFAULT_CAPACITY);
                     while (true) {
                         EvalPass cond_p = evaluate(manager, cond_node, current_arena);
-                        EvalPass cond = refactor_access_to_var(manager, cond_p);
+                        EvalPass cond = refactor_access_to_var(manager, cond_p, true);
                         //assert(cond.tag == VARIABLE_TYPE);
                         assert(cond.as_variable.vtype.primitive_tag == VAR_TYPE_BOOL);
 
@@ -693,7 +754,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     evaluate(manager, init_node, current_arena);
                     while (true) {
                         EvalPass cond_p = evaluate(manager, cond_node, current_arena);
-                        EvalPass cond = refactor_access_to_var(manager, cond_p);
+                        EvalPass cond = refactor_access_to_var(manager, cond_p, true);
                         //assert(cond.tag == VARIABLE_TYPE);
                         assert(cond.as_variable.vtype.primitive_tag == VAR_TYPE_BOOL);
 
@@ -726,8 +787,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass left_expr_p = evaluate(manager, left_expr_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     //printf("SUM:\n");
                     //print_eval_pass(left_expr);
@@ -744,8 +805,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass left_expr_p = evaluate(manager, left_expr_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     action = eval_arithmetic(left_expr, right_expr, '-');
                     break;
@@ -758,8 +819,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass left_expr_p = evaluate(manager, left_expr_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     action = eval_arithmetic(left_expr, right_expr, '*');
                     break;
@@ -773,8 +834,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass left_expr_p = evaluate(manager, left_expr_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     action = eval_arithmetic(left_expr, right_expr, '/');
                     break;
@@ -786,8 +847,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass left_expr_p = evaluate(manager, left_expr_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     //assert(right_expr.tag == VARIABLE_TYPE);
                     assert(left_expr.as_variable.vtype.primitive_tag == VAR_TYPE_BOOL);
@@ -807,8 +868,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass left_expr_p = evaluate(manager, left_expr_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     //assert(left_expr.tag == VARIABLE_TYPE);
                     //assert(right_expr.tag == VARIABLE_TYPE);
@@ -833,8 +894,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     EvalPass logical_operator = evaluate(manager, logical_operator_node, current_arena);
                     EvalPass right_expr_p = evaluate(manager, right_expr_node, current_arena);
 
-                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p);
-                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p);
+                    EvalPass left_expr = refactor_access_to_var(manager, left_expr_p, true);
+                    EvalPass right_expr = refactor_access_to_var(manager, right_expr_p, true);
 
                     assert(logical_operator.as_value.vv_tag == VV_INT);
                     action = eval_comparison(left_expr, right_expr, logical_operator.as_value.value_int);
@@ -890,8 +951,9 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                         char* param_name = params->list[i].name;
                         initializeIdentifier(manager, param_name);
 
+                        // there needs to be a type modify for arguments, i have not tested that
                         Type* type_store = (Type*) arena_get(local_inner_arena, sizeof(Type));
-                        *type_store = params->list[i].argtype;
+                        *type_store = args.as_args.list[i].argtype;
 
                         setAttributeIdentifier(manager, param_name, "type", (VValue){ .vv_tag = VV_PTR, .value_ptr = type_store });
                         setAttributeIdentifier(manager, param_name, "value", args.as_args.list[i].value);
@@ -911,8 +973,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                         type_modify(&return_type, body_ret_type);
 
-                        print_type(body_ret_type);
-                        print_type(return_type);
+                        //print_type(body_ret_type);
+                        //print_type(return_type);
 
                         assert(type_equals(body_ret_type, return_type));
 
@@ -935,7 +997,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                     EvalPass access = evaluate(manager, access_node, current_arena);
                     EvalPass expr_p = evaluate(manager, expr_node, current_arena);
-                    EvalPass expr = refactor_access_to_var(manager, expr_p);
+                    EvalPass expr = refactor_access_to_var(manager, expr_p, true);
 
                     //assert(expr.tag == VARIABLE_TYPE);
                     assert(expr.as_variable.vtype.primitive_tag == VAR_TYPE_INT);
@@ -1104,11 +1166,17 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     Args fargs;
                     fargs.mode = ARGUMENT_MODE;
                     fargs.amount = children_count;
-                    fargs.list = arena_get(g_arena, children_count*sizeof(Argument));
+                    if(children_count > 0){
+                        fargs.list = arena_get(g_arena, children_count*sizeof(Argument));
+                    }
+                    else{
+                        fargs.list = NULL;
+                    }
+                    
 
                     for(int i = 0;i<children_count;i++){
                         EvalPass expr_p = evaluate(manager, curr_expr, current_arena);
-                        EvalPass expr = refactor_access_to_var(manager, expr_p);
+                        EvalPass expr = refactor_access_to_var(manager, expr_p, true);
                         //assert(expr.tag == VARIABLE_TYPE);
 
                         Argument sarg;
@@ -1135,7 +1203,13 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                     Args fpars;
                     fpars.amount = children_count;
-                    fpars.list = arena_get(g_arena, children_count*sizeof(Argument));
+                    if(children_count > 0){
+                        fpars.list = arena_get(g_arena, children_count*sizeof(Argument));
+                    }
+                    else{
+                        fpars.list = NULL;
+                    }
+                    
                     fpars.mode = PARAMETER_MODE;
 
                     for(int i = 0;i<children_count;i++){
@@ -1190,7 +1264,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     if (get_children_count(*node) > 0) {
                         ASTNode* expr_node = node->storage.node->left_child;
                         EvalPass expr_p = evaluate(manager, expr_node, current_arena);
-                        EvalPass expr = refactor_access_to_var(manager, expr_p);
+                        EvalPass expr = refactor_access_to_var(manager, expr_p, true);
 
                         //assert(expr.tag == VARIABLE_TYPE);
                         action.as_signal.variable = expr.as_variable;
@@ -1264,7 +1338,10 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
             }
             break;
         case EXTERNAL:
-            node->storage.external_func(manager);
+            void* external_return = node->storage.external_func(manager);
+            if(external_return){
+                action = *((EvalPass*) external_return);
+            }
             break;
         case LABEL:
             printf("There should be no labels\n");
@@ -1289,55 +1366,104 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
     return action;
 }
 
-void print_execute(void* manager_void, ...){
-    SymbolsManager* manager = (SymbolsManager*) manager_void;
-
-    VValue generic_print = *getAttributeIdentifier(manager, "generic_print", "value");
-
-    switch (generic_print.vv_tag) {
-        case VV_INT:
-            printf("%d\n", generic_print.value_int);
-            break;
-        case VV_FLOAT:
-            printf("%.2f\n", generic_print.value_float);
-            break;
-        case VV_BOOL:
-            printf("%s\n", generic_print.value_bool ? "true" : "false");
-            break;
-        case VV_STRING:
-            printf("%s\n", generic_print.value_string ? generic_print.value_string : "null");
-            break;
-        case VV_PTR:
-            printf("ptr(%p)\n", generic_print.value_ptr);
-            break;
+int print_primitive(Variable var_print){
+    switch (prim_type(var_print)) {
+        case VAR_TYPE_INT:
+            return printf("%d\n", prim_int(var_print));
+        case VAR_TYPE_FLOAT:
+            return printf("%.2f\n", prim_float(var_print));
+        case VAR_TYPE_BOOL:
+            return printf("%s\n", prim_bool(var_print) ? "true" : "false");
+        case VAR_TYPE_STRING:
+            return printf("%s\n", prim_str(var_print) ? prim_str(var_print) : "null");
         default:
-            printf("Unsuported type for print function");
+            printf("Unsuported type for print function %d\n", prim_type(var_print));
             assert(false);
             break;
     }
 }
 
-void print_define(SymbolsManager* manager){
-    Type* void_type_storage = (Type*) arena_get(manager->global_arena, sizeof(Args));
-    *void_type_storage = VOID_MACRO_TYPE;
-    initializeIdentifier(manager, "print");
-    setAttributeIdentifier(manager, "print", "type", (VValue){ .vv_tag = VV_PTR, .value_ptr = void_type_storage});
+void* print_execute(void* manager_void, ...){
+    SymbolsManager* manager = (SymbolsManager*) manager_void;
 
-    Argument* argument = (Argument*) arena_get(manager->global_arena, sizeof(Argument));
-    argument->mode = PARAMETER_MODE;
-    argument->name = "generic_print";
-    argument->argtype = GENERIC_MACRO_TYPE;
+    //VValue generic_print = *getAttributeIdentifier(manager, "generic_print", "value");
+    //VValue generic_print = *getAttributeIdentifier(manager, "generic_print", "type");
+
+    //Variable generic_print = {.storage = getAttributeIdentifier(manager, "generic_print", "value"), .vtype=*((Type*) (getAttributeIdentifier(manager, "generic_print", "type")->value_ptr))};
+    var_fetch(generic_print);
+    
+    if(var_is_prim(generic_print)){
+        print_primitive(generic_print);
+    }
+    else if(var_is_ptr(generic_print)){
+        assert(false);
+    }
+    else if(var_is_arr(generic_print)){
+        int sizes[MAX_DIMS] = arr_size(generic_print);
+        int ndims = arr_ndims(generic_print);
+
+
+        assert(false);
+    }
+    else{
+        assert(false);
+    }
+
+    return NULL;
+}
+
+void* to_int_execute(void* manager_void, ...){
+    return NULL;
+}
+
+void print_define(SymbolsManager* manager){
+    Argument argument;
+    argument.mode = PARAMETER_MODE;
+    argument.name = "generic_print";
+    argument.argtype = GENERIC_MACRO_TYPE;
+
+    external_define(manager, "print", VOID_MACRO_TYPE, print_execute, 1, argument);
+}
+
+void to_int_define(SymbolsManager* manager){
+    Argument argument;
+    argument.mode = PARAMETER_MODE;
+    argument.name = "unconverted";
+    argument.argtype = ANY_MACRO_TYPE;
+
+    external_define(manager, "to_int", INT_MACRO_TYPE, to_int_execute, 1, argument);
+}
+
+void external_define(SymbolsManager* manager, char* func_name, Type return_type, void* (*external_func)(void*, ...), int args_amount, ...){
+
+    va_list args;
+
+    va_start(args, args_amount);
+
+    Argument* argument_list = (Argument*) arena_get(manager->global_arena, args_amount*sizeof(Argument));
+    for (int i = 0; i < args_amount; i++){
+        argument_list[i] = va_arg(args, Argument);
+        assert(argument_list[i].mode == PARAMETER_MODE);
+    }
+
+    Type* void_type_storage = (Type*) arena_get(manager->global_arena, sizeof(Args));
+    *void_type_storage = return_type;
+    initializeIdentifier(manager, func_name);
+    setAttributeIdentifier(manager, func_name, "type", (VValue){ .vv_tag = VV_PTR, .value_ptr = void_type_storage});
+
     Args* args_storage = (Args*) arena_get(manager->global_arena, sizeof(Args));
     args_storage->mode = PARAMETER_MODE;
-    args_storage->list = argument;
+    args_storage->list = argument_list;
     args_storage->amount = 1;
-    setAttributeIdentifier(manager, "print", "params", (VValue){ .vv_tag = VV_PTR, .value_ptr = args_storage });
+    setAttributeIdentifier(manager, func_name, "params", (VValue){ .vv_tag = VV_PTR, .value_ptr = args_storage });
 
     ASTNode* external_node = (ASTNode*) arena_get(manager->global_arena, sizeof(ASTNode));
     external_node->tag = EXTERNAL;
     external_node->sibling = NULL;
-    external_node->storage.external_func = print_execute;
-    setAttributeIdentifier(manager, "print", "value", (VValue){ .vv_tag = VV_PTR, .value_ptr = external_node});
+    external_node->storage.external_func = external_func;
+    setAttributeIdentifier(manager, func_name, "value", (VValue){ .vv_tag = VV_PTR, .value_ptr = external_node});
+
+    va_end(args);
 }
 
 SymbolsManager* create_symbols_manager(bool production){

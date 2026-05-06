@@ -65,6 +65,7 @@ typedef enum {
     KIND_PRIMITIVE,
     KIND_ARRAY,
     KIND_POINTER,
+    KIND_ANY,
 } TypeKind;
 
 struct ArrType{

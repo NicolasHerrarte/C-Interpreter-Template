@@ -28,3 +28,6 @@ for(init int i <- 0;i < 5;i = i + 1){
     print(madness_return[1][i]);
 }
 
+init int a <- madness_return[0][0];
+print(a);
+
