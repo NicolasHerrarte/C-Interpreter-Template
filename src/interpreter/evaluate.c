@@ -1399,7 +1399,7 @@ void* print_execute(void* manager_void, ...){
         assert(false);
     }
     else if(var_is_arr(generic_print)){
-        int sizes[MAX_DIMS] = arr_size(generic_print);
+        int* sizes = arr_size(generic_print);
         int ndims = arr_ndims(generic_print);
 
 
