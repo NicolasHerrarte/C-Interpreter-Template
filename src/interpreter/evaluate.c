@@ -1366,16 +1366,37 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
     return action;
 }
 
-int print_primitive(Variable var_print){
+int print_primitive(Variable var_print, bool only_length){
     switch (prim_type(var_print)) {
         case VAR_TYPE_INT:
-            return printf("%d\n", prim_int(var_print));
+            if(only_length){
+                return snprintf(NULL, 0, "%d\n", prim_int(var_print));
+            }
+            else{
+                return printf("%d\n", prim_int(var_print));
+            }
+            
         case VAR_TYPE_FLOAT:
-            return printf("%.2f\n", prim_float(var_print));
+            if(only_length){
+                return snprintf(NULL, 0, "%.2f\n", prim_float(var_print));
+            }
+            else{
+                return printf("%.2f\n", prim_float(var_print));
+            }
         case VAR_TYPE_BOOL:
-            return printf("%s\n", prim_bool(var_print) ? "true" : "false");
+            if(only_length){
+                return snprintf(NULL, 0, "%s\n", prim_bool(var_print) ? "true" : "false");
+            }
+            else{
+                return printf("%s\n", prim_bool(var_print) ? "true" : "false");
+            } 
         case VAR_TYPE_STRING:
-            return printf("%s\n", prim_str(var_print) ? prim_str(var_print) : "null");
+            if(only_length){
+                return snprintf(NULL, 0, "%s\n", prim_str(var_print) ? prim_str(var_print) : "null");
+            }
+            else{
+                return printf("%s\n", prim_str(var_print) ? prim_str(var_print) : "null");
+            }
         default:
             printf("Unsuported type for print function %d\n", prim_type(var_print));
             assert(false);
@@ -1393,7 +1414,7 @@ void* print_execute(void* manager_void, ...){
     var_fetch(generic_print);
     
     if(var_is_prim(generic_print)){
-        print_primitive(generic_print);
+        print_primitive(generic_print, false);
     }
     else if(var_is_ptr(generic_print)){
         assert(false);
