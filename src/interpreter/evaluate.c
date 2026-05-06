@@ -524,6 +524,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                     Type type_spec = specification.as_vart;
 
+                    //print_type(type_spec);
+
                     action.tag = VARIABLE_TYPE;
                     
                     if(type_spec.kind == KIND_ARRAY){
@@ -562,9 +564,9 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                         assert(instantiation.tag == VART_TYPE);
                         arr_type.array.elem_type = instantiation.as_vart.array.elem_type;
                         arr_type.array.ndims     = instantiation.as_vart.array.ndims + 1;
-                        arr_type.array.sizes[0]  = dim_size;
+                        arr_type.array.sizes[instantiation.as_vart.array.ndims] = dim_size;
                         for (int d = 0; d < instantiation.as_vart.array.ndims; d++)
-                            arr_type.array.sizes[d + 1] = instantiation.as_vart.array.sizes[d];
+                            arr_type.array.sizes[d] = instantiation.as_vart.array.sizes[d];
                     } else if (instantiation.tag == VALUE_TYPE) {
                         // innermost — primitive type from @vl
                         assert(instantiation.as_value.vv_tag == VV_INT);
@@ -575,7 +577,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                             case 3: arr_type.array.elem_type = VAR_TYPE_STRING; break;
                             default: assert(false);
                         }
-                        arr_type.array.ndims    = 1;
+                        arr_type.array.ndims = 1;
                         arr_type.array.sizes[0] = dim_size;
                     } else {
                         assert(false);
@@ -686,8 +688,9 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     ASTNode* step_node = cond_node->sibling;
                     ASTNode* body_node = step_node->sibling;
 
-                    evaluate(manager, init_node, current_arena);
                     initializeScope(manager, DYNADICT_DEFAULT_CAPACITY);
+
+                    evaluate(manager, init_node, current_arena);
                     while (true) {
                         EvalPass cond_p = evaluate(manager, cond_node, current_arena);
                         EvalPass cond = unpack_access_to_var(manager, cond_p);
