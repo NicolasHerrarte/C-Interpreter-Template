@@ -122,5 +122,11 @@ int main(){
         debug
     );
 
+    printf("PARSE DONE\n");
+    fflush(stdout);
+
     calculate_tree(ast, false);
+
+    printf("TREE DONE\n");
+    fflush(stdout);
 }
