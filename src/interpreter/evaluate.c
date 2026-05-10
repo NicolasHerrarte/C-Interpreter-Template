@@ -59,7 +59,8 @@ EvalPass eval_comparison(EvalPass left, EvalPass right, int op) {
     action.as_variable.vtype = BOOL_MACRO_TYPE;
 
     // disallow everything with string
-    assert(lt != VAR_TYPE_STRING && rt != VAR_TYPE_STRING);
+    //printf("%d, %d: %d\n", lt, rt, VAR_TYPE_STRING);
+    assert(!(lt == VAR_TYPE_STRING && rt != VAR_TYPE_STRING));
     // disallow bool vs numeric
     assert(!((lt == VAR_TYPE_BOOL && rt != VAR_TYPE_BOOL) ||
             (rt == VAR_TYPE_BOOL && lt != VAR_TYPE_BOOL)));
@@ -701,6 +702,9 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                                 break;
                             }
                         }
+
+                        //print_symbols_tree(manager, manager->root, "while");
+                        resetScope(manager, DYNADICT_DEFAULT_CAPACITY);
                     }
                     finalizeScope(manager);
 
@@ -715,6 +719,8 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     initializeScope(manager, DYNADICT_DEFAULT_CAPACITY);
 
                     evaluate(manager, init_node, current_arena);
+
+                    initializeScope(manager, DYNADICT_DEFAULT_CAPACITY);
                     while (true) {
                         EvalPass cond_p = evaluate(manager, cond_node, current_arena);
                         EvalPass cond = refactor_access_to_var(manager, cond_p, true);
@@ -737,7 +743,10 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                         }
 
                         evaluate(manager, step_node, current_arena);
+
+                        resetScope(manager, DYNADICT_DEFAULT_CAPACITY);
                     }
+                    finalizeScope(manager);
                     finalizeScope(manager);
 
                     break;
@@ -1197,7 +1206,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
 
                     int children_count = 0;
                     if(param){
-                        children_count = get_children_count(*param);
+                        children_count = get_children_count(*node);
                     }
 
                     Args fpars;
@@ -1210,7 +1219,7 @@ EvalPass evaluate(SymbolsManager* manager, ASTNode* node, Arena* current_arena){
                     }
                     
                     fpars.mode = PARAMETER_MODE;
-
+                    //printf("MAYBE!!! %d\n", children_count);
                     for(int i = 0;i<children_count;i++){
                         EvalPass spar = evaluate(manager, param, current_arena);
                         assert(spar.tag == SPAR_TYPE);

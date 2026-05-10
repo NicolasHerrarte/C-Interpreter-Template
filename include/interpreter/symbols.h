@@ -9,9 +9,10 @@
 #define get_current_scope(manager) dynarray_get_last(manager->stack)
 
 SymbolsTable* initializeScope(SymbolsManager* manager, size_t dynadict_capacity);
+void resetScope(SymbolsManager* manager, size_t dynadict_capacity);
 SymbolsTable* finalizeScope(SymbolsManager* manager);
-void initializeIdentifier(SymbolsManager* manager, char* identifier);
 
+void initializeIdentifier(SymbolsManager* manager, char* identifier);
 void setAttributeIdentifier(SymbolsManager* manager, char* identifier, char* attribute, VValue record);
 VValue* getAttributeIdentifier(SymbolsManager* manager, char* identifier, char* attribute);
 void setAttributeStorage(SymbolsManager* manager, VValue* storage_ptr, char* attribute, VValue record);

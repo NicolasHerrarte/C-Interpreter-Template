@@ -1,26 +1,35 @@
-proc add(arr_one: int[], arr_two: int[]) -> int[]{
-    init int[] arr_ret <- assign int[5];
-    for(init int i <- 0;i < 5;i = i + 1){
-        arr_ret[i] = arr_one[i] + arr_two[i];
+proc matmul(a : int[][], b : int[][]) -> int[][] {
+    init int[][] result <- assign int[3][3];
+
+    for(init int i <- 0; i < 3; i = i + 1){
+        for(init int j <- 0; j < 3; j = j + 1){
+            init int sum <- 0;
+            for(init int k <- 0; k < 3; k = k + 1){
+                sum = sum + a[i][k] * b[k][j];
+            }
+            result[i][j] = sum;
+        }
     }
 
-    return arr_ret;
+    return result;
 }
 
-init int[] arr_arg_one <- assign int[5];
-init int[] arr_arg_two <- assign int[5];
+init int[][] a <- assign int[3][3];
+init int[][] b <- assign int[3][3];
 
-for(init int i <- 0;i < 5;i = i + 1){
-    arr_arg_one[i] = i;
-    arr_arg_two[i] = (i * i);
+for(init int i <- 0; i < 3; i = i + 1){
+    for(init int j <- 0; j < 3; j = j + 1){
+        a[i][j] = i + j;
+        b[i][j] = i * j;
+    }
 }
 
-init int[] final <- add(arr_arg_one, arr_arg_two);
+init int[][] c <- matmul(a, b);
 
-for(init int i <- 0;i < 5;i = i + 1){
-    print(final[i]);
+for(init int i <- 0; i < 3; i = i + 1){
+    for(init int j <- 0; j < 3; j = j + 1){
+        print(tostr(c[i][j]));
+    }
 }
 
-init int negative_test <- -final[2];
-print(negative_test);
-print(5-3);
+

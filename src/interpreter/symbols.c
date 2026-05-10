@@ -42,6 +42,16 @@ SymbolsTable* initializeScope(SymbolsManager* manager, size_t dynadict_capacity)
     return new_table;
 }
 
+void resetScope(SymbolsManager* manager, size_t dynadict_capacity){
+    assert(dynarray_length(manager->stack) > 0);
+    SymbolsTable* table = dynarray_get_last(manager->stack);
+
+    dynadict_destroy(table->hash);
+    Hash* hash_storage = dynadict_create(dynadict_capacity, VValue**);
+
+    table->hash = hash_storage;
+}
+
 SymbolsTable* finalizeScope(SymbolsManager* manager) {
     SymbolsTable* removed = NULL;
 

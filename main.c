@@ -232,6 +232,7 @@ void* input_execute(void* manager_void, ...){
 
     char* str_copy = local_storage_get((input_size+1) * sizeof(char));
     strncpy(str_copy, buffer, input_size);
+    str_copy[input_size] = '\0';
 
     make_string(input_string, str_copy);
     set_return(read_pass, input_string);

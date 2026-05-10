@@ -1,30 +1,36 @@
 [NODE] Type: StatList
  ├── [NODE] Type: FuncDecl
- │   ├── [ID] add
+ │   ├── [ID] matmul
  │   ├── [NODE] Type: Parameters
  │   │   ├── [NODE] Type: UniParam
- │   │   │   ├── [ID] arr_one
+ │   │   │   ├── [ID] a
  │   │   │   └── [NODE] Type: ArrType
- │   │   │       └── [NODE] Type: PrimitiveType
- │   │   │           └── [TYPE] 0
+ │   │   │       └── [NODE] Type: ArrType
+ │   │   │           └── [NODE] Type: PrimitiveType
+ │   │   │               └── [TYPE] 0
  │   │   └── [NODE] Type: UniParam
- │   │       ├── [ID] arr_two
+ │   │       ├── [ID] b
  │   │       └── [NODE] Type: ArrType
- │   │           └── [NODE] Type: PrimitiveType
- │   │               └── [TYPE] 0
+ │   │           └── [NODE] Type: ArrType
+ │   │               └── [NODE] Type: PrimitiveType
+ │   │                   └── [TYPE] 0
  │   ├── [NODE] Type: ArrType
- │   │   └── [NODE] Type: PrimitiveType
- │   │       └── [TYPE] 0
+ │   │   └── [NODE] Type: ArrType
+ │   │       └── [NODE] Type: PrimitiveType
+ │   │           └── [TYPE] 0
  │   └── [NODE] Type: StatList
  │       ├── [NODE] Type: VarDecl
  │       │   ├── [NODE] Type: ArrType
- │       │   │   └── [NODE] Type: PrimitiveType
- │       │   │       └── [TYPE] 0
- │       │   ├── [ID] arr_ret
+ │       │   │   └── [NODE] Type: ArrType
+ │       │   │       └── [NODE] Type: PrimitiveType
+ │       │   │           └── [TYPE] 0
+ │       │   ├── [ID] result
  │       │   └── [NODE] Type: AssignStorage
  │       │       └── [NODE] Type: ArrInst
- │       │           ├── [TYPE] 0
- │       │           └── [INT] 5
+ │       │           ├── [NODE] Type: ArrInst
+ │       │           │   ├── [TYPE] 0
+ │       │           │   └── [INT] 3
+ │       │           └── [INT] 3
  │       ├── [NODE] Type: ForNode
  │       │   ├── [NODE] Type: VarDecl
  │       │   │   ├── [NODE] Type: PrimitiveType
@@ -35,7 +41,7 @@
  │       │   │   ├── [NODE] Type: Access
  │       │   │   │   └── [ID] i
  │       │   │   ├── [TYPE] 4
- │       │   │   └── [INT] 5
+ │       │   │   └── [INT] 3
  │       │   ├── [NODE] Type: VarAssign
  │       │   │   ├── [NODE] Type: Access
  │       │   │   │   └── [ID] i
@@ -44,44 +50,110 @@
  │       │   │       │   └── [ID] i
  │       │   │       └── [INT] 1
  │       │   └── [NODE] Type: StatList
- │       │       └── [NODE] Type: VarAssign
- │       │           ├── [NODE] Type: ArrAccess
+ │       │       └── [NODE] Type: ForNode
+ │       │           ├── [NODE] Type: VarDecl
+ │       │           │   ├── [NODE] Type: PrimitiveType
+ │       │           │   │   └── [TYPE] 0
+ │       │           │   ├── [ID] j
+ │       │           │   └── [INT] 0
+ │       │           ├── [NODE] Type: CompNode
  │       │           │   ├── [NODE] Type: Access
- │       │           │   │   └── [ID] arr_ret
- │       │           │   └── [NODE] Type: Access
- │       │           │       └── [ID] i
- │       │           └── [NODE] Type: Sum
- │       │               ├── [NODE] Type: ArrAccess
- │       │               │   ├── [NODE] Type: Access
- │       │               │   │   └── [ID] arr_one
- │       │               │   └── [NODE] Type: Access
- │       │               │       └── [ID] i
- │       │               └── [NODE] Type: ArrAccess
- │       │                   ├── [NODE] Type: Access
- │       │                   │   └── [ID] arr_two
+ │       │           │   │   └── [ID] j
+ │       │           │   ├── [TYPE] 4
+ │       │           │   └── [INT] 3
+ │       │           ├── [NODE] Type: VarAssign
+ │       │           │   ├── [NODE] Type: Access
+ │       │           │   │   └── [ID] j
+ │       │           │   └── [NODE] Type: Sum
+ │       │           │       ├── [NODE] Type: Access
+ │       │           │       │   └── [ID] j
+ │       │           │       └── [INT] 1
+ │       │           └── [NODE] Type: StatList
+ │       │               ├── [NODE] Type: VarDecl
+ │       │               │   ├── [NODE] Type: PrimitiveType
+ │       │               │   │   └── [TYPE] 0
+ │       │               │   ├── [ID] sum
+ │       │               │   └── [INT] 0
+ │       │               ├── [NODE] Type: ForNode
+ │       │               │   ├── [NODE] Type: VarDecl
+ │       │               │   │   ├── [NODE] Type: PrimitiveType
+ │       │               │   │   │   └── [TYPE] 0
+ │       │               │   │   ├── [ID] k
+ │       │               │   │   └── [INT] 0
+ │       │               │   ├── [NODE] Type: CompNode
+ │       │               │   │   ├── [NODE] Type: Access
+ │       │               │   │   │   └── [ID] k
+ │       │               │   │   ├── [TYPE] 4
+ │       │               │   │   └── [INT] 3
+ │       │               │   ├── [NODE] Type: VarAssign
+ │       │               │   │   ├── [NODE] Type: Access
+ │       │               │   │   │   └── [ID] k
+ │       │               │   │   └── [NODE] Type: Sum
+ │       │               │   │       ├── [NODE] Type: Access
+ │       │               │   │       │   └── [ID] k
+ │       │               │   │       └── [INT] 1
+ │       │               │   └── [NODE] Type: StatList
+ │       │               │       └── [NODE] Type: VarAssign
+ │       │               │           ├── [NODE] Type: Access
+ │       │               │           │   └── [ID] sum
+ │       │               │           └── [NODE] Type: Sum
+ │       │               │               ├── [NODE] Type: Access
+ │       │               │               │   └── [ID] sum
+ │       │               │               └── [NODE] Type: Mult
+ │       │               │                   ├── [NODE] Type: ArrAccess
+ │       │               │                   │   ├── [NODE] Type: ArrAccess
+ │       │               │                   │   │   ├── [NODE] Type: Access
+ │       │               │                   │   │   │   └── [ID] a
+ │       │               │                   │   │   └── [NODE] Type: Access
+ │       │               │                   │   │       └── [ID] i
+ │       │               │                   │   └── [NODE] Type: Access
+ │       │               │                   │       └── [ID] k
+ │       │               │                   └── [NODE] Type: ArrAccess
+ │       │               │                       ├── [NODE] Type: ArrAccess
+ │       │               │                       │   ├── [NODE] Type: Access
+ │       │               │                       │   │   └── [ID] b
+ │       │               │                       │   └── [NODE] Type: Access
+ │       │               │                       │       └── [ID] k
+ │       │               │                       └── [NODE] Type: Access
+ │       │               │                           └── [ID] j
+ │       │               └── [NODE] Type: VarAssign
+ │       │                   ├── [NODE] Type: ArrAccess
+ │       │                   │   ├── [NODE] Type: ArrAccess
+ │       │                   │   │   ├── [NODE] Type: Access
+ │       │                   │   │   │   └── [ID] result
+ │       │                   │   │   └── [NODE] Type: Access
+ │       │                   │   │       └── [ID] i
+ │       │                   │   └── [NODE] Type: Access
+ │       │                   │       └── [ID] j
  │       │                   └── [NODE] Type: Access
- │       │                       └── [ID] i
+ │       │                       └── [ID] sum
  │       └── [NODE] Type: Return
  │           └── [NODE] Type: Access
- │               └── [ID] arr_ret
+ │               └── [ID] result
  ├── [NODE] Type: VarDecl
  │   ├── [NODE] Type: ArrType
- │   │   └── [NODE] Type: PrimitiveType
- │   │       └── [TYPE] 0
- │   ├── [ID] arr_arg_one
+ │   │   └── [NODE] Type: ArrType
+ │   │       └── [NODE] Type: PrimitiveType
+ │   │           └── [TYPE] 0
+ │   ├── [ID] a
  │   └── [NODE] Type: AssignStorage
  │       └── [NODE] Type: ArrInst
- │           ├── [TYPE] 0
- │           └── [INT] 5
+ │           ├── [NODE] Type: ArrInst
+ │           │   ├── [TYPE] 0
+ │           │   └── [INT] 3
+ │           └── [INT] 3
  ├── [NODE] Type: VarDecl
  │   ├── [NODE] Type: ArrType
- │   │   └── [NODE] Type: PrimitiveType
- │   │       └── [TYPE] 0
- │   ├── [ID] arr_arg_two
+ │   │   └── [NODE] Type: ArrType
+ │   │       └── [NODE] Type: PrimitiveType
+ │   │           └── [TYPE] 0
+ │   ├── [ID] b
  │   └── [NODE] Type: AssignStorage
  │       └── [NODE] Type: ArrInst
- │           ├── [TYPE] 0
- │           └── [INT] 5
+ │           ├── [NODE] Type: ArrInst
+ │           │   ├── [TYPE] 0
+ │           │   └── [INT] 3
+ │           └── [INT] 3
  ├── [NODE] Type: ForNode
  │   ├── [NODE] Type: VarDecl
  │   │   ├── [NODE] Type: PrimitiveType
@@ -92,7 +164,7 @@
  │   │   ├── [NODE] Type: Access
  │   │   │   └── [ID] i
  │   │   ├── [TYPE] 4
- │   │   └── [INT] 5
+ │   │   └── [INT] 3
  │   ├── [NODE] Type: VarAssign
  │   │   ├── [NODE] Type: Access
  │   │   │   └── [ID] i
@@ -101,85 +173,118 @@
  │   │       │   └── [ID] i
  │   │       └── [INT] 1
  │   └── [NODE] Type: StatList
- │       ├── [NODE] Type: VarAssign
- │       │   ├── [NODE] Type: ArrAccess
- │       │   │   ├── [NODE] Type: Access
- │       │   │   │   └── [ID] arr_arg_one
- │       │   │   └── [NODE] Type: Access
- │       │   │       └── [ID] i
- │       │   └── [NODE] Type: Access
- │       │       └── [ID] i
- │       └── [NODE] Type: VarAssign
- │           ├── [NODE] Type: ArrAccess
+ │       └── [NODE] Type: ForNode
+ │           ├── [NODE] Type: VarDecl
+ │           │   ├── [NODE] Type: PrimitiveType
+ │           │   │   └── [TYPE] 0
+ │           │   ├── [ID] j
+ │           │   └── [INT] 0
+ │           ├── [NODE] Type: CompNode
  │           │   ├── [NODE] Type: Access
- │           │   │   └── [ID] arr_arg_two
- │           │   └── [NODE] Type: Access
- │           │       └── [ID] i
- │           └── [NODE] Type: Mult
- │               ├── [NODE] Type: Access
- │               │   └── [ID] i
- │               └── [NODE] Type: Access
- │                   └── [ID] i
+ │           │   │   └── [ID] j
+ │           │   ├── [TYPE] 4
+ │           │   └── [INT] 3
+ │           ├── [NODE] Type: VarAssign
+ │           │   ├── [NODE] Type: Access
+ │           │   │   └── [ID] j
+ │           │   └── [NODE] Type: Sum
+ │           │       ├── [NODE] Type: Access
+ │           │       │   └── [ID] j
+ │           │       └── [INT] 1
+ │           └── [NODE] Type: StatList
+ │               ├── [NODE] Type: VarAssign
+ │               │   ├── [NODE] Type: ArrAccess
+ │               │   │   ├── [NODE] Type: ArrAccess
+ │               │   │   │   ├── [NODE] Type: Access
+ │               │   │   │   │   └── [ID] a
+ │               │   │   │   └── [NODE] Type: Access
+ │               │   │   │       └── [ID] i
+ │               │   │   └── [NODE] Type: Access
+ │               │   │       └── [ID] j
+ │               │   └── [NODE] Type: Sum
+ │               │       ├── [NODE] Type: Access
+ │               │       │   └── [ID] i
+ │               │       └── [NODE] Type: Access
+ │               │           └── [ID] j
+ │               └── [NODE] Type: VarAssign
+ │                   ├── [NODE] Type: ArrAccess
+ │                   │   ├── [NODE] Type: ArrAccess
+ │                   │   │   ├── [NODE] Type: Access
+ │                   │   │   │   └── [ID] b
+ │                   │   │   └── [NODE] Type: Access
+ │                   │   │       └── [ID] i
+ │                   │   └── [NODE] Type: Access
+ │                   │       └── [ID] j
+ │                   └── [NODE] Type: Mult
+ │                       ├── [NODE] Type: Access
+ │                       │   └── [ID] i
+ │                       └── [NODE] Type: Access
+ │                           └── [ID] j
  ├── [NODE] Type: VarDecl
  │   ├── [NODE] Type: ArrType
- │   │   └── [NODE] Type: PrimitiveType
- │   │       └── [TYPE] 0
- │   ├── [ID] final
+ │   │   └── [NODE] Type: ArrType
+ │   │       └── [NODE] Type: PrimitiveType
+ │   │           └── [TYPE] 0
+ │   ├── [ID] c
  │   └── [NODE] Type: FuncCall
  │       ├── [NODE] Type: Access
- │       │   └── [ID] add
+ │       │   └── [ID] matmul
  │       └── [NODE] Type: Arguments
  │           ├── [NODE] Type: Access
- │           │   └── [ID] arr_arg_one
+ │           │   └── [ID] a
  │           └── [NODE] Type: Access
- │               └── [ID] arr_arg_two
- ├── [NODE] Type: ForNode
- │   ├── [NODE] Type: VarDecl
- │   │   ├── [NODE] Type: PrimitiveType
- │   │   │   └── [TYPE] 0
- │   │   ├── [ID] i
- │   │   └── [INT] 0
- │   ├── [NODE] Type: CompNode
- │   │   ├── [NODE] Type: Access
- │   │   │   └── [ID] i
- │   │   ├── [TYPE] 4
- │   │   └── [INT] 5
- │   ├── [NODE] Type: VarAssign
- │   │   ├── [NODE] Type: Access
- │   │   │   └── [ID] i
- │   │   └── [NODE] Type: Sum
- │   │       ├── [NODE] Type: Access
- │   │       │   └── [ID] i
- │   │       └── [INT] 1
- │   └── [NODE] Type: StatList
- │       └── [NODE] Type: FuncCall
- │           ├── [NODE] Type: Access
- │           │   └── [ID] print
- │           └── [NODE] Type: Arguments
- │               └── [NODE] Type: ArrAccess
- │                   ├── [NODE] Type: Access
- │                   │   └── [ID] final
- │                   └── [NODE] Type: Access
- │                       └── [ID] i
- ├── [NODE] Type: VarDecl
- │   ├── [NODE] Type: PrimitiveType
- │   │   └── [TYPE] 0
- │   ├── [ID] negative_test
- │   └── [NODE] Type: Inverse
- │       └── [NODE] Type: ArrAccess
- │           ├── [NODE] Type: Access
- │           │   └── [ID] final
- │           └── [INT] 2
- ├── [NODE] Type: FuncCall
- │   ├── [NODE] Type: Access
- │   │   └── [ID] print
- │   └── [NODE] Type: Arguments
- │       └── [NODE] Type: Access
- │           └── [ID] negative_test
- └── [NODE] Type: FuncCall
-     ├── [NODE] Type: Access
-     │   └── [ID] print
-     └── [NODE] Type: Arguments
-         └── [NODE] Type: Subtract
-             ├── [INT] 5
-             └── [INT] 3
+ │               └── [ID] b
+ └── [NODE] Type: ForNode
+     ├── [NODE] Type: VarDecl
+     │   ├── [NODE] Type: PrimitiveType
+     │   │   └── [TYPE] 0
+     │   ├── [ID] i
+     │   └── [INT] 0
+     ├── [NODE] Type: CompNode
+     │   ├── [NODE] Type: Access
+     │   │   └── [ID] i
+     │   ├── [TYPE] 4
+     │   └── [INT] 3
+     ├── [NODE] Type: VarAssign
+     │   ├── [NODE] Type: Access
+     │   │   └── [ID] i
+     │   └── [NODE] Type: Sum
+     │       ├── [NODE] Type: Access
+     │       │   └── [ID] i
+     │       └── [INT] 1
+     └── [NODE] Type: StatList
+         └── [NODE] Type: ForNode
+             ├── [NODE] Type: VarDecl
+             │   ├── [NODE] Type: PrimitiveType
+             │   │   └── [TYPE] 0
+             │   ├── [ID] j
+             │   └── [INT] 0
+             ├── [NODE] Type: CompNode
+             │   ├── [NODE] Type: Access
+             │   │   └── [ID] j
+             │   ├── [TYPE] 4
+             │   └── [INT] 3
+             ├── [NODE] Type: VarAssign
+             │   ├── [NODE] Type: Access
+             │   │   └── [ID] j
+             │   └── [NODE] Type: Sum
+             │       ├── [NODE] Type: Access
+             │       │   └── [ID] j
+             │       └── [INT] 1
+             └── [NODE] Type: StatList
+                 └── [NODE] Type: FuncCall
+                     ├── [NODE] Type: Access
+                     │   └── [ID] print
+                     └── [NODE] Type: Arguments
+                         └── [NODE] Type: FuncCall
+                             ├── [NODE] Type: Access
+                             │   └── [ID] tostr
+                             └── [NODE] Type: Arguments
+                                 └── [NODE] Type: ArrAccess
+                                     ├── [NODE] Type: ArrAccess
+                                     │   ├── [NODE] Type: Access
+                                     │   │   └── [ID] c
+                                     │   └── [NODE] Type: Access
+                                     │       └── [ID] i
+                                     └── [NODE] Type: Access
+                                         └── [ID] j
